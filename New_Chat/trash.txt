@@ -1,0 +1,22 @@
+    cout << "7.  Очистить мои сообщения \n";
+        
+   
+        case 7:
+        {
+            if (!currentUser)
+            {
+                {
+                    system("cls");
+                    cout << " Сначала войдите в систему!\n Нажимите любую кнопку чтобы продолжить или начать заново... ";
+                    cin.ignore();
+                    system("cls");
+                    break;
+                }
+            }
+            currentUser->clearMessages();
+            system("cls");
+            cout << " Сообщения очищены \n Нажимите любую кнопку чтобы продолжить или начать заново... ";
+            cin.ignore();
+            system("cls");
+            break;
+        }

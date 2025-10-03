@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AuthManager.h" />
+    <ClInclude Include="Message.h" />
     <ClInclude Include="MessageService.h" />
     <ClInclude Include="SHA1.h" />
     <ClInclude Include="User.h" />
@@ -29,12 +30,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MenuManager.cpp" />
     <ClCompile Include="MenuManager.h" />
+    <ClCompile Include="Message.cpp" />
     <ClCompile Include="MessageService.cpp" />
     <ClCompile Include="SHA1.cpp" />
     <ClCompile Include="User.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="trash.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

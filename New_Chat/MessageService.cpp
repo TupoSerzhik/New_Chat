@@ -1,35 +1,108 @@
-п»ї#include "MessageService.h"
+#include "MessageService.h"
 #include <iostream>
+#include <fstream>
+#include <sys/stat.h>
 
-MessageService::MessageService(AuthManager & authManager) : authManager(authManager) {}
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
-bool MessageService::sendPrivateMessage(const std::string& sender, const std::string& recipient, const std::string& message) 
+MessageService::MessageService(AuthManager& authManager) : authManager(authManager)
 {
-    User* recipientUser = authManager.findUser(recipient);
-    if (!recipientUser)
-    {
-        std::cout << " РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ '" << recipient << "' РЅРµ РЅР°Р№РґРµРЅ!\n";
-        return false;
+    loadMessagesFromFile();
+}
+
+MessageService::~MessageService()
+{
+    saveMessagesToFile();
+}
+
+void MessageService::loadMessagesFromFile()
+{
+    std::ifstream file(messageFilename);
+    if (!file.is_open()) {
+        std::cout << "Файл сообщений не найден, будет создан новый.\n";
+        return;
     }
 
-    std::string fullMessage = " РћС‚ " + sender + ": " + message;
-    recipientUser->addMessage(fullMessage);
-    std::cout << " РЎРѕРѕР±С‰РµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ '" << recipient << "'\n";
+    std::string line;
+    while (std::getline(file, line)) {
+        if (!line.empty()) {
+            Message msg = Message::deserialize(line);
+            messages.push_back(msg);
+        }
+    }
+    file.close();
+}
+
+void MessageService::saveMessagesToFile()
+{
+    std::ofstream file(messageFilename);
+    if (!file.is_open()) {
+        std::cerr << "Ошибка: не удалось открыть файл для записи сообщений!\n";
+        return;
+    }
+
+    for (const auto& msg : messages) {
+        file << msg.serialize() << "\n";
+    }
+    file.close();
+
+    setFilePermissions(messageFilename);
+}
+
+void MessageService::setFilePermissions(const std::string& filename)
+{
+#ifdef _WIN32
+    _chmod(filename.c_str(), _S_IREAD | _S_IWRITE);
+#else
+    chmod(filename.c_str(), S_IRUSR | S_IWUSR);
+#endif
+}
+
+bool MessageService::sendPrivateMessage(const std::string& sender, const std::string& recipient, const std::string& message)
+{
+    messages.push_back(Message(message, sender, recipient));
+    saveMessagesToFile();
+    std::cout << " Сообщение отправлено пользователю '" << recipient << "'\n";
     return true;
 }
 
-void MessageService::broadcastMessage(const std::string& sender, const std::string& message) 
+void MessageService::broadcastMessage(const std::string& sender, const std::string& message)
 {
-    std::string fullMessage = " Р РђРЎРЎР«Р›РљРђ РѕС‚ " + sender + ": " + message;
-
-
-    for (auto& user : authManager.getUsers()) 
+    for (auto& user : authManager.getUsers())
     {
-        if (user.getUsername() != sender)
+        if (user.getLogin() != sender)
         {
-            const_cast<User&>(user).addMessage(fullMessage);
+            messages.push_back(Message(message, sender, user.getLogin()));
         }
     }
+    saveMessagesToFile();
+    std::cout << " Сообщение отправлено всем пользователям\n";
+}
 
-    std::cout << " РЎРѕРѕР±С‰РµРЅРёРµ РѕС‚РїСЂР°РІР»РµРЅРѕ РІСЃРµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРј\n";
+std::vector<Message> MessageService::getUserMessages(const std::string& username) const
+{
+    std::vector<Message> userMessages;
+    for (const auto& msg : messages) {
+        if (msg.getReceiver() == username || msg.getReceiver() == "ALL") {
+            userMessages.push_back(msg);
+        }
+    }
+    return userMessages;
+}
+
+void MessageService::clearUserMessages(const std::string& username)
+{
+    std::vector<Message> remainingMessages;
+    for (const auto& msg : messages) {
+        if (msg.getReceiver() != username) {
+            remainingMessages.push_back(msg);
+        }
+    }
+    messages = remainingMessages;
+    saveMessagesToFile();
 }

@@ -1,4 +1,5 @@
 #include "MenuManager.h"
+#include "AuthManager.h"
 
 using namespace std;
 
@@ -6,16 +7,15 @@ void Start_Chating()
 {
     setlocale(LC_ALL, "ru");
     AuthManager authManager;
-
     MessageService messageService(authManager);
-    
+
     User* currentUser = nullptr;
 
     string username;
     string password;
     string recipient;
     string message;
-    
+
     char choise_user_start_menu;
     char choise_user_after_sign;
 
@@ -87,7 +87,7 @@ void Start_Chating()
                 do
                 {
                     cout << "=-=-=-=-=-=-= Опции =-=-=-=-=-=-=\n\n";
-                    cout << "  Текущий пользователь: " << currentUser->getUsername() << "\n\n";
+                    cout << "  Текущий пользователь: " << currentUser->getLogin() << "\n\n";
 
                     cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n";
                     cout << "  1.  Отправить личное сообщение  \n";
@@ -106,45 +106,57 @@ void Start_Chating()
                     case '1':
                     {
                         cout << "  Введите получателя: ";
-                        getline(cin, recipient);
-                        cin.ignore();
-                        cout << endl << "  Введите сообщение: ";
-                        getline(cin, message);
+                        cin >> recipient;
 
-                        messageService.sendPrivateMessage(currentUser->getUsername(), recipient, message);
-                        cin.ignore();
-                        cin.get();
-                        system("cls");
-                        break;
+                        if (authManager.checkUser(recipient) == false)
+                        {
+                            cout << "Пользователь '" << recipient << "' не найден!" << endl;
+                            cin.ignore();
+                            system("cls");
+                            break;
+                        }
+                        else
+                        {
+                            cin.ignore();
+                            cout << endl << "  Введите сообщение: ";
+                            getline(cin, message);
+
+                            messageService.sendPrivateMessage(currentUser->getLogin(), recipient, message);
+                            cin.ignore();
+                            cin.get();
+                            system("cls");
+                            break;
+                        }
                     }
                     case '2':
                     {
                         system("cls");
 
                         cout << "  Введите сообщение для всех: \n=> ";
-                       cin >> message;
+                        cin >> message;
 
-                        messageService.broadcastMessage(currentUser->getUsername(), message);
+                        messageService.broadcastMessage(currentUser->getLogin(), message);
                         cin.get();
                         system("cls");
                         break;
                     }
-                    case '3':
+                    case '3': 
                     {
                         system("cls");
                         cout << "\n  Ваши сообщения: \n";
-                        auto messages = currentUser->getMessages();
+                        auto userMessages = messageService.getUserMessages(currentUser->getLogin());
                         cin.ignore();
 
-                        if (messages.empty())
+                        if (userMessages.empty())
                         {
                             cout << "  У вас нет сообщений \n";
                         }
                         else
                         {
-                            for (size_t i = 0; i < messages.size(); i++)
+                            for (size_t i = 0; i < userMessages.size(); i++)
                             {
-                                cout << (i + 1) << ". " << messages[i] << "\n";
+                                cout << (i + 1) << ". От " << userMessages[i].getSender()
+                                    << ": " << userMessages[i].getText() << "\n";
                             }
                         }
                         cin.get();
@@ -163,10 +175,11 @@ void Start_Chating()
                     }
                     case '5':
                     {
-                        currentUser->clearMessages();
+                        messageService.clearUserMessages(currentUser->getLogin());
                         system("cls");
                         cout << " Сообщения очищены \n Нажимите любую кнопку чтобы продолжить или начать заново... ";
                         cin.ignore();
+                        cin.get();
                         system("cls");
                         break;
                     }

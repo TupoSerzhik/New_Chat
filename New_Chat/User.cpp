@@ -1,44 +1,43 @@
 #include "User.h"
-#include "SHA1.h"
-#include <iostream>
+#include <sstream>
 
-User::User(const std::string& username, const std::string& passwordHash)
-    : username(username), passwordHash(passwordHash)
+User::User(const std::string& login, const std::string& pass)
+    : _login(login), _pass(pass)
 {
+}
+
+std::string User::getLogin() const
+{
+    return _login;
+}
+
+std::string User::getPass() const
+{
+    return _pass;
+}
+
+void User::setLogin(const std::string& login)
+{
+    _login = login;
+}
+
+void User::setPass(const std::string& pass)
+{
+    _pass = pass;
 }
 
 std::string User::serialize() const
 {
-    return (_name + "," + _login + "," + _pass + "\n");
+    return _login + "|" + _pass;
 }
 
-std::string User::getUsername() const
+User User::deserialize(const std::string& data)
 {
-    return username;
-}
-
-std::string User::getPasswordHash() const 
-{
-    return passwordHash;
-}
-
-bool User::verifyPassword(const std::string& password) const 
-{
-    SHA1 sha1;
-    return passwordHash == sha1.hash(password);
-}
-
-void User::addMessage(const std::string& message)
-{
-    messages.push_back(message);
-}
-
-std::vector<std::string> User::getMessages() const 
-{
-    return messages;
-}
-
-void User::clearMessages() 
-{
-    messages.clear();
+    size_t pos = data.find('|');
+    if (pos != std::string::npos) {
+        std::string login = data.substr(0, pos);
+        std::string pass = data.substr(pos + 1);
+        return User(login, pass);
+    }
+    return User("", "");
 }
